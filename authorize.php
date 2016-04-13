@@ -176,4 +176,73 @@ class authorize {
         );
         return $respuestaRegresarDinero;
     }
+    
+    //VALIDAMOS QUE LA TARJETA SEA REAL Y TENGA DINERO 
+    //retorna array("estado_tran"=>,"text_tran"=>$texto_resultado_pago,"x_trans_id"=>$x_trans_id);
+    function devolucionTarjeta($datosDevolucion) {
+        echo "<pre>";
+        var_dump($datosDevolucion);
+        echo "</pre>";
+        //SI ES 0 SE USA LA PASARELA DE PRUEBA SI ES 1 SE USA LA PASARELA DE PRODUCTIVO
+        if ($datosDevolucion[authorize_modo] == 0) {
+            $post_url = "https://test.authorize.net/gateway/transact.dll";
+        }
+        if ($datosDevolucion[authorize_modo] == 1) {
+            $post_url = "https://secure.authorize.net/gateway/transact.dll";
+        }
+
+        //TOMAMOS LOS DATOS A ENVIAR A AUTHORIZE
+        $post_values = array(
+            "x_login" => $datosDevolucion[x_login],
+            "x_tran_key" => $datosDevolucion[x_tran_key],
+            "x_version" => "3.1",
+            "x_delim_data" => "TRUE",
+            "x_delim_char" => "|",
+            "x_relay_response" => "FALSE",
+            "x_type" => "CREDIT",
+            "x_trans_id" => $datosDevolucion[x_trans_id],
+            "x_exp_date" => $datosDevolucion[x_exp_date],
+            "x_card_num" => $datosDevolucion[x_card_num],
+            "x_description" => "Devolucion SaguaAir",
+            "x_amount" => $datosDevolucion[x_amount]
+        );
+
+        //CONVERTIMOS LOS DATOS EN UN ARREGLO
+        $post_string = "";
+        foreach ($post_values as $key => $value) {
+            $post_string .= "$key=" . urlencode($value) . "&";
+        }
+        $post_string = rtrim($post_string, "& ");
+
+        //INICIALIZAMOS EL CURL CON LA RIRECCION DEL GETWAY
+        $request = curl_init($post_url);
+        //COLOCAMO EN EL CURL LOS PARAMETROS A ENVIAR
+        curl_setopt($request, CURLOPT_HEADER, 0); // set to 0 to eliminate header info from response
+        curl_setopt($request, CURLOPT_RETURNTRANSFER, 1); // Returns response data instead of TRUE(1)
+        curl_setopt($request, CURLOPT_POSTFIELDS, $post_string); // use HTTP POST to send form data
+        curl_setopt($request, CURLOPT_SSL_VERIFYPEER, FALSE); // uncomment this line if you get no gateway response.
+        //EJECUTAMOS EL CURL Y REGRESAMOS LA RESPUESTA EN $post_response
+        $post_response = curl_exec($request); // execute curl post and store results in $post_response
+        //CERRAMOS EL CURL
+        curl_close($request); // close curl object
+        //TOAMOS EL RESULTADO Y LO DIVIDIMOS EN PARTES
+        $response_array = explode($post_values[x_delim_char], $post_response);
+        //SI LA TARJETA FUE ACEPTA EL RESULTADO = 1 , 2 = Declined ,3 = Error ,4 = Retenida para revicios
+        $estado_tran = $response_array[0];
+        //TEXTO QUE DA EL RESULTADO EJEMPLO=This transaction has been approved.
+        $texto_resultado_pago = $response_array[3];
+        //EL CODIGO DE TRANSACCION
+        $x_trans_id = $response_array[6];
+        $respuestaValidar = array(
+            "estado_tran" => $estado_tran, //1=Aceptada,2=Rechazada,3=Error,4 = Retenida para revicios
+            "text_tran" => $texto_resultado_pago, //Id de esta tranzaccion a pasar a PRIOR_AUTH_CAPTURE
+            "x_trans_id" => $x_trans_id
+        );
+        echo "<pre>";
+        var_dump($respuestaValidar);
+        echo "</pre>";
+        return $respuestaValidar;
+    }
+
+    
 }
