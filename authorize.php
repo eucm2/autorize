@@ -201,7 +201,7 @@ class authorize {
             "x_type" => "CREDIT",
             "x_trans_id" => $datosDevolucion[x_trans_id],
             "x_card_num" => $datosDevolucion[x_card_num],
-            "x_description" => "Devolucion SaguaAir",
+            "x_description" => "Devolucion",
             "x_amount" => $datosDevolucion[x_amount]
         );
 
@@ -236,9 +236,6 @@ class authorize {
             "text_tran" => $texto_resultado_pago, //Id de esta tranzaccion a pasar a PRIOR_AUTH_CAPTURE
             "x_trans_id" => $x_trans_id
         );
-        echo "<pre>";
-        var_dump($respuestaValidar);
-        echo "</pre>";
         return $respuestaValidar;
     }
 
